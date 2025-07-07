@@ -97,9 +97,21 @@ async function handleSearchPage(partNumber) {
   }
   
   // Find compass icon (drawing viewer link)
-  const compassIcon = document.querySelector('a[href*="DViewer"], a[href*="drawing"], .compass-icon, [title*="drawing"]');
-  if (compassIcon) {
-    data.drawingLink = compassIcon.href || compassIcon.getAttribute('onclick');
+  let drawingLink = null;
+  const partRows = document.querySelectorAll('tr[data-part]');
+  partRows.forEach(row => {
+    const svgIcon = row.querySelector('svg');
+    const partCell = row.querySelector('.part-number, td:first-child, [data-part]');
+    if (svgIcon && partCell) {
+      // Check if the SVG is inside an <a>
+      const link = svgIcon.closest('a');
+      if (link) {
+        drawingLink = link.href;
+      }
+    }
+  });
+  if (drawingLink) {
+    data.drawingLink = drawingLink;
   }
   
   return { success: true, data };
@@ -192,11 +204,15 @@ async function handleBOMPage(partNumber) {
     if (links.length > 0) {
       links.forEach(link => {
         const partNumber = link.textContent.trim();
+        // Check for compass SVG inside the link
+        const hasCompass = !!link.querySelector('svg');
         if (partNumber && partNumber.match(/^\d{3}-\d{6}-\d{3}$/)) {
           data.bomParts.push({
             partNumber: partNumber,
             href: link.href,
-            onclick: link.getAttribute('onclick')
+            onclick: link.getAttribute('onclick'),
+            hasDrawing: hasCompass,
+            drawingLink: hasCompass ? link.href : null
           });
         }
       });
@@ -300,4 +316,22 @@ window.KMMatrixContent = {
   detectPageType,
   waitForElement,
   simulateClick
-}; 
+};
+
+function openDrawingLinkForPart(partNumber) {
+  const partRows = document.querySelectorAll('tr[data-part]');
+  for (const row of partRows) {
+    const partCell = row.querySelector('.part-number, td:first-child, [data-part]');
+    if (partCell && partCell.textContent.trim() === partNumber) {
+      const svgIcon = row.querySelector('svg');
+      if (svgIcon) {
+        const link = svgIcon.closest('a');
+        if (link) {
+          simulateClick(link);
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+} 
