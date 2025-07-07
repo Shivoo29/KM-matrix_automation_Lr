@@ -125,7 +125,7 @@ function triggerDownload(url, filename) {
 
 // Navigate to drawing viewer for a part
 function navigateToDrawing(partNumber) {
-  const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewer?partnumber=${encodeURIComponent(partNumber)}`;
+  const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${encodeURIComponent(partNumber)}`;
   window.location.href = viewerUrl;
 }
 

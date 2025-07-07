@@ -44,7 +44,7 @@ function detectPageType() {
   
   if (path.includes('/Search') || path.includes('/search')) {
     return 'search';
-  } else if (path.includes('/DViewer') || path.includes('/drawing')) {
+  } else if (path.includes('/DViewerX') || path.includes('/drawing')) {
     return 'drawing';
   } else if (path.includes('/BOM') || path.includes('/bom') || document.querySelector('.bom-tree')) {
     return 'bom';
