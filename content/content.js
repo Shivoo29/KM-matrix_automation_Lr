@@ -180,6 +180,10 @@ async function handleDrawingPage(partNumber) {
     }
   }
   
+  // Find all <a> tags in the sidebar that link to PDFs
+  const sidebar = document.querySelector('.sidebar-class'); // replace with actual class
+  const downloadLinks = sidebar.querySelectorAll('a[href$=".pdf"], a[href*="download"]');
+  
   return { success: true, data };
 }
 
@@ -334,4 +338,38 @@ function openDrawingLinkForPart(partNumber) {
     }
   }
   return false;
+}
+
+function triggerDownload(url, filename) {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function downloadAllDrawings() {
+  // Find all download links for PDFs in the sidebar
+  const sidebar = document.querySelector('.part-list-table, .sidebar-part-list'); // adjust selector as needed
+  if (!sidebar) return;
+
+  const links = sidebar.querySelectorAll('a[href$=".pdf"], a[href*="download"]');
+  links.forEach(link => {
+    const url = link.href;
+    // Try to get the part number from the row or link text
+    const row = link.closest('tr');
+    let partNumber = '';
+    if (row) {
+      const partCell = row.querySelector('.part-number, td:first-child');
+      if (partCell) partNumber = partCell.textContent.trim();
+    }
+    if (!partNumber) {
+      // fallback: use link text or a default
+      partNumber = link.textContent.trim() || 'drawing';
+    }
+    const filename = `LAM-${partNumber.replace(/-/g, '')}.pdf`;
+    triggerDownload(url, filename);
+  });
 } 
