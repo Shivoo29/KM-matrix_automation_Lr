@@ -126,7 +126,7 @@ async function navigateToSearch(partNumber) {
 
 async function processMainDrawing(partNumber, cleanPartNumber, folder) {
   // Navigate to drawing viewer
-  const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewer?partnumber=${encodeURIComponent(partNumber)}&partrev=C`;
+  const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewer?partnumber=${encodeURIComponent(partNumber)}`;
   await chrome.tabs.update(currentTab.id, { url: viewerUrl });
   await waitForPageLoad();
   
@@ -171,7 +171,7 @@ async function getBOMParts(partNumber) {
 
 async function getBOMSubParts(bomPart) {
   // Navigate to BOM part's drawing viewer
-  const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewer?partnumber=${encodeURIComponent(bomPart)}&partrev=C`;
+  const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewer?partnumber=${encodeURIComponent(bomPart)}`;
   await chrome.tabs.update(currentTab.id, { url: viewerUrl });
   await waitForPageLoad();
   
@@ -194,7 +194,7 @@ async function downloadMainDrawing(cleanPartNumber, folder) {
 
 async function downloadPartDrawing(partNumber, cleanPartNumber, level, type, folder) {
   // Navigate to part's drawing viewer
-  const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewer?partnumber=${encodeURIComponent(partNumber)}&partrev=C`;
+  const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewer?partnumber=${encodeURIComponent(partNumber)}`;
   await chrome.tabs.update(currentTab.id, { url: viewerUrl });
   await waitForPageLoad();
   
