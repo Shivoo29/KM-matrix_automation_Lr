@@ -1,15 +1,24 @@
-# KM Matrix Automation Chrome Extension
+# KM Matrix Automation Extension
 
-Automates downloading engineering drawings from Lam Research's internal KM Matrix system (kmmatrix.fremont.lamrc.net).
+Automates downloading engineering drawings from Lam Research's internal KM Matrix system (kmmatrix.fremont.lamrc.net). Compatible with **Google Chrome** and **Microsoft Edge**.
 
 ## 🚀 Quick Start
 
 ### Installation
+
+#### For Google Chrome:
 1. **Download/Clone** this repository to your local machine
 2. **Open Chrome** and go to `chrome://extensions/`
 3. **Enable "Developer mode"** (toggle in top right)
 4. **Click "Load unpacked"** and select the extension folder
 5. **Extension icon** will appear in your Chrome toolbar
+
+#### For Microsoft Edge:
+1. **Download/Clone** this repository to your local machine
+2. **Open Edge** and go to `edge://extensions/`
+3. **Enable "Developer mode"** (toggle in top left)
+4. **Click "Load unpacked"** and select the extension folder
+5. **Extension icon** will appear in your Edge toolbar
 
 ### Usage
 1. **Click the extension icon** to open the popup
@@ -139,9 +148,10 @@ km-matrix-automation/
 ### Common Issues
 
 **Extension not loading:**
-- Check Chrome version (requires Chrome 88+)
+- Check browser version (requires Chrome 88+ or Edge 88+)
 - Verify all files are present
 - Check console for errors
+- For Edge: Ensure you're using the Chromium-based version (Edge 79+)
 
 **No downloads:**
 - Ensure logged into KM Matrix
