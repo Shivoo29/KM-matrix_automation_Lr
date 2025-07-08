@@ -278,4 +278,21 @@ function downloadDrawing(cleanPartNumber, level, type, folder) {
   }
   
   return false;
-} 
+}
+
+// For each part number, open a new tab
+queue.forEach(partNumber => {
+  chrome.tabs.create({
+    url: `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${encodeURIComponent(partNumber)}`,
+    active: false
+  });
+});
+
+// When the DViewer page loads, click the PDF download button
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    let btn = document.querySelector('button[aria-label="Download"]') ||
+              document.querySelector('button.download, .toolbarButton.download');
+    if (btn) btn.click();
+  }, 2000); // Adjust delay as needed
+}); 
