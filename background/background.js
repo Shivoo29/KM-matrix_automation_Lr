@@ -71,10 +71,10 @@ async function processPart(tabId, partNumber, folder) {
       target: { tabId },
       func: (partNumber) => {
         const embed = document.querySelector('embed');
-        if (embed && embed.src) {
+        if (embed && embed.getAttribute('original-url')) {
           const cleanPart = partNumber.replace(/-/g, '');
           const filename = `LAM-${cleanPart}-L0-MAIN.pdf`;
-          return { downloadUrl: embed.src, filename };
+          return { downloadUrl: embed.getAttribute('original-url'), filename };
         }
         return null;
       },
