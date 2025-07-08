@@ -77,27 +77,56 @@ async function createOrGetTab() {
 }
 
 async function processPart(partNumber, folder) {
-  const cleanPartNumber = partNumber.replace(/-/g, '');
-
   try {
-    // Step 1: Search for main part
-    await navigateToSearch(partNumber);
-    await delay(300);
+    // Step 1: Navigate to the search page and search for the part
+    const searchUrl = `https://kmmatrix.fremont.lamrc.net/Search?q=${encodeURIComponent(partNumber)}`;
+    await chrome.tabs.update(currentTab.id, { url: searchUrl });
 
-    // Step 2: Navigate to the drawing viewer
+    // Wait for the search results to load
+    await chrome.scripting.executeScript({
+      target: { tabId: currentTab.id },
+      func: () => window.KMMatrixInject.waitForElement('a[href*="DViewerX"]')
+    });
+
+    // Step 2: Navigate to the drawing viewer page
     const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${encodeURIComponent(partNumber)}`;
     await chrome.tabs.update(currentTab.id, { url: viewerUrl });
-    await waitForPageLoad();
 
-    // Step 3: Download the main drawing
-    await downloadMainDrawing(cleanPartNumber, folder);
-    await delay(300); // Give time for the download to initiate
-
-    chrome.runtime.sendMessage({
-      action: 'partComplete',
-      partNumber,
-      downloads: 1
+    // Step 3: Wait for the download button and initiate the download
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: currentTab.id },
+      func: async (partNumber, folder) => {
+        const downloadButton = await window.KMMatrixInject.waitForElement('button[aria-label="Download"]');
+        window.KMMatrixInject.clickElement('button[aria-label="Download"]');
+        
+        const downloadInfo = await window.KMMatrixInject.findDownloadLink();
+        if (downloadInfo && downloadInfo.href) {
+          const filename = window.KMMatrixInject.generateFilename(partNumber, 0, 'MAIN');
+          // This function is now running in the content script, so it can't call chrome.downloads.
+          // We'll return the URL and filename to the background script.
+          return { downloadUrl: downloadInfo.href, filename: filename };
+        }
+        return null;
+      },
+      args: [partNumber, folder]
     });
+
+    if (results && results.length > 0 && results[0].result) {
+      const { downloadUrl, filename } = results[0].result;
+      chrome.downloads.download({
+        url: downloadUrl,
+        filename: folder ? `${folder}/${filename}` : filename,
+        saveAs: false
+      });
+
+      chrome.runtime.sendMessage({
+        action: 'partComplete',
+        partNumber,
+        downloads: 1
+      });
+    } else {
+      throw new Error('Could not find download link.');
+    }
 
   } catch (e) {
     chrome.runtime.sendMessage({
@@ -106,44 +135,6 @@ async function processPart(partNumber, folder) {
       error: e.message
     });
   }
-}
-
-async function navigateToSearch(partNumber) {
-  const searchUrl = `https://kmmatrix.fremont.lamrc.net/Search?q=${encodeURIComponent(partNumber)}`;
-  await chrome.tabs.update(currentTab.id, { url: searchUrl });
-  await waitForPageLoad();
-}
-
-async function downloadMainDrawing(partNumber, folder) {
-  const results = await chrome.scripting.executeScript({
-    target: { tabId: currentTab.id },
-    func: () => {
-      // Use the functions exposed by inject.js
-      const downloadInfo = window.KMMatrixInject.findDownloadLink();
-      if (downloadInfo && downloadInfo.href) {
-        const filename = window.KMMatrixInject.generateFilename(partNumber, 0, 'MAIN');
-        return { downloadUrl: downloadInfo.href, filename: filename };
-      }
-      return null;
-    }
-  });
-
-  if (results && results.length > 0 && results[0].result) {
-    const { downloadUrl, filename } = results[0].result;
-    chrome.downloads.download({
-      url: downloadUrl,
-      filename: folder ? `${folder}/${filename}` : filename,
-      saveAs: false
-    });
-  } else {
-    throw new Error('Could not find download link.');
-  }
-}
-
-async function waitForPageLoad() {
-  return new Promise(resolve => {
-    setTimeout(resolve, 2000); // Wait 2 seconds for page load
-  });
 }
 
 function delay(ms) {
