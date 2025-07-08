@@ -390,8 +390,15 @@ function clickPDFToolbarDownload() {
 // Run this when the DViewer page loads
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
-    clickPDFToolbarDownload();
-  }, 2000); // Wait for PDF viewer to load, adjust delay as needed
+    let btn = document.querySelector('button[aria-label="Download"]') ||
+              document.querySelector('button.download, .toolbarButton.download');
+    if (btn) {
+      btn.click();
+      console.log('Download button clicked!');
+    } else {
+      console.log('Download button not found!');
+    }
+  }, 2000);
 });
 
 // Example: parts is an array of part numbers
