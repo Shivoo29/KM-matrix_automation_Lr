@@ -350,26 +350,27 @@ function triggerDownload(url, filename) {
   document.body.removeChild(link);
 }
 
-function downloadAllDrawings() {
-  // Find all download links for PDFs in the sidebar
-  const sidebar = document.querySelector('.part-list-table, .sidebar-part-list'); // adjust selector as needed
-  if (!sidebar) return;
+async function downloadAllDrawings() {
+  // 1. Download main drawing
+  const downloadBtn = document.querySelector('div.download-drawing, [data-testid="download-drawing"]');
+  if (downloadBtn) {
+    downloadBtn.click();
+    await new Promise(res => setTimeout(res, 1000)); // Wait for download to start
+  }
 
-  const links = sidebar.querySelectorAll('a[href$=".pdf"], a[href*="download"]');
-  links.forEach(link => {
-    const url = link.href;
-    // Try to get the part number from the row or link text
-    const row = link.closest('tr');
-    let partNumber = '';
-    if (row) {
-      const partCell = row.querySelector('.part-number, td:first-child');
-      if (partCell) partNumber = partCell.textContent.trim();
+  // 2. Download sub-drawings
+  // Find all sub-part rows in the sidebar
+  const subPartRows = document.querySelectorAll('.part-list-table tbody tr, .sidebar-part-list tr');
+  for (const row of subPartRows) {
+    // Click the row to select the sub-part
+    row.click();
+    await new Promise(res => setTimeout(res, 500)); // Wait for drawing to load
+
+    // Click the download button for the sub-part
+    const subDownloadBtn = document.querySelector('div.download-drawing, [data-testid="download-drawing"]');
+    if (subDownloadBtn) {
+      subDownloadBtn.click();
+      await new Promise(res => setTimeout(res, 1000)); // Wait for download to start
     }
-    if (!partNumber) {
-      // fallback: use link text or a default
-      partNumber = link.textContent.trim() || 'drawing';
-    }
-    const filename = `LAM-${partNumber.replace(/-/g, '')}.pdf`;
-    triggerDownload(url, filename);
-  });
+  }
 } 
