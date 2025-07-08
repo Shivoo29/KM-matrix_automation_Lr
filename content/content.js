@@ -5,6 +5,7 @@ let currentPage = 'unknown';
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  console.log('6');
   if (msg.action === 'extractData') {
     const data = extractPageData();
     sendResponse(data);
@@ -13,6 +14,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 // Detect the type of page we're on
 function detectPageType() {
+  console.log('7');
   const path = window.location.pathname;
   
   if (path.includes('/Search') || path.includes('/search')) {
@@ -26,6 +28,7 @@ function detectPageType() {
 
 // Extract data from current page (general function)
 function extractPageData() {
+  console.log('8');
   const pageType = detectPageType();
   const data = {
     pageType: pageType,
@@ -43,12 +46,14 @@ function extractPageData() {
 }
 
 function extractDrawingData() {
+  console.log('9');
   return {
     downloadLink: findDownloadLink()
   };
 }
 
 function findDownloadLink() {
+  console.log('10');
   const downloadSelectors = [
     'a[href*="download"]',
     'a[href*=".pdf"]',
@@ -72,6 +77,7 @@ function findDownloadLink() {
 
 // Utility function to trigger a download
 function triggerDownload(url, filename) {
+  console.log('11');
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;

@@ -11,7 +11,8 @@
   "permissions": [
     "tabs",
     "scripting",
-    "downloads"
+    "downloads",
+    "activeTab"
   ],
   "host_permissions": [
     "https://kmmatrix.fremont.lamrc.net/*"
