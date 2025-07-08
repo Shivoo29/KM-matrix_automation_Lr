@@ -79,4 +79,4 @@ function triggerDownload(url, filename) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-} 
+}
