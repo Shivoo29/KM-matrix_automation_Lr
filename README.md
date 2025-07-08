@@ -34,46 +34,37 @@ Automates downloading engineering drawings from Lam Research's internal KM Matri
 
 ## 📋 Features
 
-### Part Processing Hierarchy
-- **Level 0**: Main part drawing PDF
-- **Level 1**: Sub-parts from drawing viewer sidebar
-- **Level 2**: BOM Navigator parts
-- **Level 3**: BOM sub-parts (no further nesting)
+### Part Processing
+- Downloads the main engineering drawing for each part number entered.
 
 ### File Naming Convention
 ```
-LAM-[CleanPartNumber]-L[Level]-[Type].pdf
+LAM-[CleanPartNumber]-L0-MAIN.pdf
 
-Examples:
-- LAM-810341810003-L0-MAIN.pdf (main part)
-- LAM-710341810101-L1-SUB.pdf (sub-part)
-- LAM-853A41869003-L2-BOM.pdf (BOM part)
-- LAM-648320227476-L3-BOMSUB.pdf (BOM sub-part)
+Example:
+- LAM-810341810003-L0-MAIN.pdf
 ```
 
 ### Automation Flow
-1. **Search** for main part number
-2. **Download** main drawing and extract sub-parts
-3. **Process** each sub-part (Level 1)
-4. **Navigate** to BOM Navigator
-5. **Download** each BOM part (Level 2)
-6. **Process** BOM sub-parts (Level 3)
+1. For each part number in the list:
+2. **Navigate** to the drawing viewer page.
+3. **Download** the main drawing PDF.
 
 ## 🧪 Testing
 
 ### Test Part Numbers
-- `810-341810-003` (main test case)
-- `710-341810-101` (sub-part example)
-- `648-320227-476` (component example)
+- `810-341810-003`
+- `710-341810-101`
+- `648-320227-476`
 
 ### Testing Steps
-1. **Load extension** in Chrome
-2. **Navigate** to KM Matrix and log in
-3. **Open extension popup**
-4. **Enter test part numbers**
-5. **Start automation** and monitor progress
-6. **Verify downloads** in Downloads folder
-7. **Check file naming** convention
+1. **Load extension** in Chrome or Edge.
+2. **Navigate** to the KM Matrix system and log in.
+3. **Open the extension popup**.
+4. **Enter one or more test part numbers**.
+5. **Click "Start"** and monitor the progress.
+6. **Verify** that the corresponding PDF drawings are saved to your Downloads folder.
+7. **Check** that the downloaded files follow the specified naming convention.
 
 ## 🔧 Technical Details
 
@@ -185,8 +176,7 @@ For issues or questions:
 ## 🔄 Updates
 
 ### Version History
-- **v1.0** - Initial release with full automation
-- **Future** - Planned features: batch processing, custom folders, reporting
+- **v1.0** - Initial release with simplified core functionality.
 
 ### Planned Features
 - [ ] Download progress reporting
@@ -197,4 +187,5 @@ For issues or questions:
 
 ---
 
-**Note:** This extension is designed for internal Lam Research use only and requires access to the KM Matrix system. 
+**Note:** This extension is designed for internal Lam Research use only and requires access to the KM Matrix system.
+ 
