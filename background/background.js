@@ -114,12 +114,30 @@ async function navigateToSearch(partNumber) {
   await waitForPageLoad();
 }
 
-async function downloadMainDrawing(cleanPartNumber, folder) {
-  await chrome.scripting.executeScript({
+async function downloadMainDrawing(partNumber, folder) {
+  const results = await chrome.scripting.executeScript({
     target: { tabId: currentTab.id },
-    function: downloadDrawing,
-    args: [cleanPartNumber, 0, 'MAIN', folder]
+    func: () => {
+      // Use the functions exposed by inject.js
+      const downloadInfo = window.KMMatrixInject.findDownloadLink();
+      if (downloadInfo && downloadInfo.href) {
+        const filename = window.KMMatrixInject.generateFilename(partNumber, 0, 'MAIN');
+        return { downloadUrl: downloadInfo.href, filename: filename };
+      }
+      return null;
+    }
   });
+
+  if (results && results.length > 0 && results[0].result) {
+    const { downloadUrl, filename } = results[0].result;
+    chrome.downloads.download({
+      url: downloadUrl,
+      filename: folder ? `${folder}/${filename}` : filename,
+      saveAs: false
+    });
+  } else {
+    throw new Error('Could not find download link.');
+  }
 }
 
 async function waitForPageLoad() {
@@ -131,37 +149,6 @@ async function waitForPageLoad() {
 function delay(ms) {
   return new Promise(res => setTimeout(res, ms));
 }
-
-// Function to be executed in content script context
-function downloadDrawing(cleanPartNumber, level, type, folder) {
-  const filename = `LAM-${cleanPartNumber}-L${level}-${type}.pdf`;
-  
-  // Find download link
-  const downloadLink = document.querySelector('a[href*="download"], a[href*=".pdf"]');
-  if (downloadLink) {
-    const downloadUrl = downloadLink.href;
-    
-    // Trigger download with custom filename
-    chrome.downloads.download({
-      url: downloadUrl,
-      filename: folder ? `${folder}/${filename}` : filename,
-      saveAs: false
-    });
-    
-    return true;
-  }
-  
-  return false;
-}
-
-// When the DViewer page loads, click the PDF download button
-window.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    let btn = document.querySelector('button[aria-label="Download"]') ||
-              document.querySelector('button.download, .toolbarButton.download');
-    if (btn) btn.click();
-  }, 2000); // Adjust delay as needed
-});
 
 function openTabsForParts(parts) {
   parts.forEach(partNumber => {
