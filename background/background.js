@@ -80,12 +80,16 @@ async function processPart(partNumber, folder) {
   const cleanPartNumber = partNumber.replace(/-/g, '');
 
   try {
-    // Step 1: Navigate to the drawing viewer for the main part
+    // Step 1: Search for main part
+    await navigateToSearch(partNumber);
+    await delay(300);
+
+    // Step 2: Navigate to the drawing viewer
     const viewerUrl = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${encodeURIComponent(partNumber)}`;
     await chrome.tabs.update(currentTab.id, { url: viewerUrl });
     await waitForPageLoad();
 
-    // Step 2: Download the main drawing
+    // Step 3: Download the main drawing
     await downloadMainDrawing(cleanPartNumber, folder);
     await delay(300); // Give time for the download to initiate
 
@@ -102,6 +106,12 @@ async function processPart(partNumber, folder) {
       error: e.message
     });
   }
+}
+
+async function navigateToSearch(partNumber) {
+  const searchUrl = `https://kmmatrix.fremont.lamrc.net/Search?q=${encodeURIComponent(partNumber)}`;
+  await chrome.tabs.update(currentTab.id, { url: searchUrl });
+  await waitForPageLoad();
 }
 
 async function downloadMainDrawing(cleanPartNumber, folder) {

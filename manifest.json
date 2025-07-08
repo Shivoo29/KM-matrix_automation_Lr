@@ -30,8 +30,9 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://kmmatrix.fremont.lamrc.net/DViewerX*"],
-      "js": ["content/content.js"]
+      "matches": ["https://kmmatrix.fremont.lamrc.net/*"],
+      "js": ["content/content.js"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
