@@ -373,4 +373,31 @@ async function downloadAllDrawings() {
       await new Promise(res => setTimeout(res, 1000)); // Wait for download to start
     }
   }
-} 
+}
+
+function clickPDFToolbarDownload() {
+  let btn = document.querySelector('button[aria-label="Download"]');
+  if (!btn) {
+    btn = document.querySelector('button.download, .toolbarButton.download');
+  }
+  if (btn) {
+    btn.click();
+    return true;
+  }
+  return false;
+}
+
+// Run this when the DViewer page loads
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    clickPDFToolbarDownload();
+  }, 2000); // Wait for PDF viewer to load, adjust delay as needed
+});
+
+// Example: parts is an array of part numbers
+parts.forEach(partNumber => {
+  chrome.tabs.create({
+    url: `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${encodeURIComponent(partNumber)}`,
+    active: false // or true if you want to focus
+  });
+}); 
