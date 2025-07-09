@@ -66,17 +66,16 @@ Example:
 6. **Verify** that the corresponding PDF drawings are saved to your Downloads folder.
 7. **Check** that the downloaded files follow the specified naming convention.
 
-## ⚙️ Backend Scraper Setup
+## ⚙️ Backend Scraper Setup (v2)
 
-The extension uses a Python-based backend with Selenium to handle the downloads. You must set this up and test it before the extension can work.
+Due to corporate security policies, the scraper cannot launch its own browser and log in. Instead, it connects to a browser that you open manually. Follow these steps carefully.
 
 ### 1. Prerequisites
 - **Python 3.8+** installed.
 - **Microsoft Edge** browser installed.
-- You must be logged into the corporate network to access the KM Matrix site.
 
-### 2. Create a Virtual Environment
-It is highly recommended to use a Python virtual environment to manage dependencies.
+### 2. Setup Python Environment (First time only)
+If you have not done so already, you need to create a Python virtual environment and install the dependencies.
 
 1.  **Open a terminal** in the project directory.
 2.  **Create the environment:**
@@ -84,35 +83,44 @@ It is highly recommended to use a Python virtual environment to manage dependenc
     python3 -m venv venv
     ```
 3.  **Activate the environment:**
-    - On **macOS/Linux**: 
-      ```bash
-      source venv/bin/activate
-      ```
-    - On **Windows**:
-      ```bash
-      .\venv\Scripts\activate
-      ```
-    Your terminal prompt should change to show `(venv)`.
+    - On **Windows**: `.\venv\Scripts\activate`
+    - On **macOS/Linux**: `source venv/bin/activate`
+4.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-### 3. Install Dependencies
-Install the required Python packages using the `requirements.txt` file.
+### 3. How to Run the Scraper
+This is the process you will follow each time you want to use the tool.
 
-```bash
-pip install -r requirements.txt
-```
+**Step A: Launch Microsoft Edge with Remote Debugging**
 
-### 4. Test the Scraper
-Before integrating with the extension, test that the scraper script works on its own.
+1.  **Close all running instances of Microsoft Edge.** This is important.
+2.  **Open a Command Prompt (cmd.exe) or PowerShell** on Windows.
+3.  **Launch Edge with a special command.** Copy and paste the following command into your terminal and press Enter:
+    ```cmd
+    start msedge --remote-debugging-port=9222
+    ```
+4.  A new Edge window will open. **Log in to the KM Matrix website** in this window as you normally would.
 
-1.  **Make sure you are logged into Microsoft Edge** with your company profile. The script will use your active session for authentication.
-2.  **Run the scraper** from your activated virtual environment with a test part number:
+**Step B: Run the Python Script**
+
+1.  **Open a new, separate terminal** in your project directory.
+2.  **Activate the virtual environment** (if it's not already active):
+    ```bash
+    .\venv\Scripts\activate
+    ```
+3.  **Run the scraper script** with a test part number:
     ```bash
     python3 scraper.py 810-341810-003
     ```
-3.  **Monitor the output.** A new Edge window should open, navigate to the page, and then close.
-4.  **Check for the downloaded file.** A new `Downloads` folder should be created in the project directory containing the file `LAM-810341810003-L0-MAIN.pdf`.
 
-If the test is successful, the backend is ready. The next step will be to integrate it with the browser extension.
+**Expected Result:**
+- The script will connect to your already-open Edge window.
+- It will open the part drawing in a new tab, and the PDF should download to your computer's main **Downloads** folder.
+- The script will print progress messages in your terminal.
+
+If this test is successful, the backend is ready. Let us know, and we can proceed to the final integration step.
 
 ## 🔧 Technical Details
 

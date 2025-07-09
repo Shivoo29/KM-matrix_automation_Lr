@@ -19,55 +19,54 @@ def send_message(message):
     sys.stdout.buffer.write(encoded_content)
     sys.stdout.buffer.flush()
 
-def get_default_edge_profile_path():
-    # Default path for Edge user data on Linux
-    # This allows Selenium to use the existing logged-in session
-    return os.path.join(os.path.expanduser("~"), ".config/microsoft-edge")
+def get_default_download_path():
+    """Returns the default downloads path for the current user."""
+    if os.name == 'nt': # Windows
+        # This is a reliable way to get the Downloads folder path on Windows
+        import ctypes
+        from ctypes import windll, wintypes
+        CSIDL_DOWNLOADS = 37
+        SHGFP_TYPE_CURRENT = 0
+        buf = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
+        windll.shell32.SHGetFolderPathW(None, CSIDL_DOWNLOADS, None, SHGFP_TYPE_CURRENT, buf)
+        return buf.value
+    else: # macOS / Linux
+        return os.path.join(os.path.expanduser('~'), 'Downloads')
 
 def download_part_drawing(part_number, download_folder):
     """
     Uses Selenium to download a single part drawing PDF from KM Matrix.
     """
-    send_message({"status": "info", "message": f"Starting download for {part_number}"})
+    send_message({"status": "info", "message": f"Connecting to browser for {part_number}"})
 
     try:
         edge_options = EdgeOptions()
         
-        # --- Key Settings ---
-        # 1. Use the default user profile to leverage existing login sessions
-        user_data_dir = get_default_edge_profile_path()
-        edge_options.add_argument(f"user-data-dir={user_data_dir}")
-        edge_options.add_argument("profile-directory=Default") # Use the "Default" profile
-
-        # 2. Set preferences to auto-download PDFs instead of opening them
-        prefs = {
-            "plugins.always_open_pdf_externally": True,
-            "download.default_directory": download_folder,
-            "download.prompt_for_download": False,
-            "download.directory_upgrade": True,
-        }
-        edge_options.add_experimental_option("prefs", prefs)
+        # --- Key Setting ---
+        # Connect to an already running instance of Edge that has remote debugging enabled.
+        edge_options.add_experimental_option("debuggerAddress", "localhost:9222")
         
-        # Optional: Run headless (without a visible browser window)
-        # edge_options.add_argument("--headless")
-
         # Path to the Edge WebDriver. 
-        # If msedgedriver is in your system's PATH, you don't need to specify the path.
-        # Otherwise, replace with the actual path to your msedgedriver executable.
-        service = EdgeService() 
-        
+        service = EdgeService()
         driver = webdriver.Edge(service=service, options=edge_options)
 
-        # Construct the URL
+        # The script will now control the browser you opened manually.
+        # We need to open the part in a new tab.
+        driver.execute_script("window.open('', '_blank');")
+        driver.switch_to.window(driver.window_handles[-1])
+
+        # Construct the URL and navigate to it
         url = f"https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber={part_number}"
         driver.get(url)
 
         # --- Wait for Download to Complete ---
-        # The file should download automatically due to the preferences set.
-        # We need to wait for the file to appear in the download folder.
+        # The file should download automatically based on browser settings.
+        # We need to wait for the file to appear in the default download folder.
         
         clean_part = part_number.replace('-', '')
         expected_filename = f"LAM-{clean_part}-L0-MAIN.pdf"
+        # The download folder is now the system's default, not one we can set.
+        download_folder = get_default_download_path()
         expected_filepath = os.path.join(download_folder, expected_filename)
         
         # Check for a temporary download file first (.crdownload)
@@ -77,24 +76,31 @@ def download_part_drawing(part_number, download_folder):
         start_time = time.time()
         download_complete = False
 
+        send_message({"status": "info", "message": f"Waiting for download in: {download_folder}"})
+
         while time.time() - start_time < timeout:
+            # Check if the temp file exists and has finished downloading
             if os.path.exists(expected_filepath) and not os.path.exists(temp_filepath):
+                # Add a small delay to ensure the file is fully written
+                time.sleep(2)
                 send_message({"status": "info", "message": f"File {expected_filename} downloaded successfully."})
                 download_complete = True
                 break
             time.sleep(1) # Wait 1 second before checking again
 
-        if not download_complete:
-            raise TimeoutError(f"Download timed out after {timeout} seconds.")
+        # Close the tab we opened
+        driver.close()
+        # Switch back to the original tab/window
+        driver.switch_to.window(driver.window_handles[0])
 
-        driver.quit()
+        if not download_complete:
+            raise TimeoutError(f"Download timed out after {timeout} seconds. Check if the file was downloaded manually.")
+
         return {"status": "success", "partNumber": part_number, "filepath": expected_filepath}
 
     except Exception as e:
         send_message({"status": "error", "message": str(e)})
-        # Ensure the driver is closed even if an error occurs
-        if 'driver' in locals() and driver:
-            driver.quit()
+        # Do not quit the driver, as it was opened by the user.
         return {"status": "error", "partNumber": part_number, "error": str(e)}
 
 if __name__ == '__main__':
