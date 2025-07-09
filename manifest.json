@@ -12,7 +12,8 @@
     "tabs",
     "scripting",
     "downloads",
-    "activeTab"
+    "activeTab",
+    "nativeMessaging"
   ],
   "host_permissions": [
     "https://kmmatrix.fremont.lamrc.net/*"

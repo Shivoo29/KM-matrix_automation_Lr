@@ -2,7 +2,7 @@ let isRunning = false;
 let queue = [];
 let completed = 0;
 let total = 0;
-let currentTab = null;
+const NATIVE_HOST_NAME = "com.gemini.km_matrix_automator";
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'start') {
@@ -11,102 +11,68 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     queue = msg.parts;
     completed = 0;
     total = queue.length;
-    processQueue(msg.folder);
+    processQueue();
+    sendResponse({ status: "started" });
   } else if (msg.action === 'stop') {
     isRunning = false;
     queue = [];
-    chrome.runtime.sendMessage({ action: 'done' });
-  } else if (msg.action === 'partComplete') {
-    completed++;
-    chrome.runtime.sendMessage({
-      action: 'progress',
-      completed,
-      total,
-      log: `Completed: ${msg.partNumber} (${msg.downloads} file)`
-    });
-  } else if (msg.action === 'partError') {
-    chrome.runtime.sendMessage({
-      action: 'progress',
-      completed,
-      total,
-      log: `Error: ${msg.partNumber} - ${msg.error}`
-    });
+    chrome.runtime.sendMessage({ action: 'done', log: 'Automation stopped by user.' });
   }
+  return true; // Indicates that the response will be sent asynchronously
 });
 
-async function processQueue(folder) {
+async function processQueue() {
   for (let i = 0; i < queue.length && isRunning; i++) {
     const partNumber = queue[i];
+    
+    chrome.runtime.sendMessage({
+      action: 'progress',
+      completed,
+      total,
+      log: `[${i + 1}/${total}] Processing: ${partNumber}`
+    });
+
     try {
-      const tab = await chrome.tabs.create({
-        url: `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${encodeURIComponent(partNumber)}`,
-        active: false
-      });
-
-      chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-        if (tabId === tab.id && info.status === 'complete') {
-          chrome.tabs.onUpdated.removeListener(listener);
-          processPart(tabId, partNumber, folder);
-        }
-      });
-
-      await delay(100); // Delay between opening tabs
+      const response = await sendNativeMessage(partNumber);
+      
+      if (response.status === 'success') {
+        completed++;
+        chrome.runtime.sendMessage({
+          action: 'progress',
+          completed,
+          total,
+          log: `Success: ${partNumber} downloaded to ${response.filepath}`
+        });
+      } else {
+        throw new Error(response.error || response.message || 'Unknown error from host');
+      }
     } catch (e) {
       chrome.runtime.sendMessage({
         action: 'progress',
         completed,
         total,
-        log: `Failed: ${partNumber} - ${e.message}`
+        log: `Error: ${partNumber} - ${e.message}`
       });
     }
   }
 
   isRunning = false;
-  chrome.runtime.sendMessage({ action: 'done' });
+  chrome.runtime.sendMessage({ action: 'done', log: 'Automation complete.' });
 }
 
-async function processPart(tabId, partNumber, folder) {
-  try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      func: (partNumber) => {
-        const embed = document.querySelector('embed');
-        if (embed && embed.getAttribute('original-url')) {
-          const cleanPart = partNumber.replace(/-/g, '');
-          const filename = `LAM-${cleanPart}-L0-MAIN.pdf`;
-          return { downloadUrl: embed.getAttribute('original-url'), filename };
-        }
-        return null;
-      },
-      args: [partNumber]
+function sendNativeMessage(partNumber) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { partNumber }, (response) => {
+      if (chrome.runtime.lastError) {
+        // This error occurs if the host is not found or fails to launch.
+        return reject(new Error(`Native host error: ${chrome.runtime.lastError.message}`));
+      }
+      if (response) {
+        resolve(response);
+      } else {
+        // This might happen if the script exits without sending a message.
+        reject(new Error('Received no response from native host.'));
+      }
     });
-
-    if (results && results.length > 0 && results[0].result) {
-      const { downloadUrl, filename } = results[0].result;
-      chrome.downloads.download({
-        url: downloadUrl,
-        filename: folder ? `${folder}/${filename}` : filename,
-        saveAs: false
-      });
-
-      chrome.runtime.sendMessage({
-        action: 'partComplete',
-        partNumber,
-        downloads: 1
-      });
-    } else {
-      throw new Error('Could not find embed download link.');
-    }
-
-  } catch (e) {
-    chrome.runtime.sendMessage({
-      action: 'partError',
-      partNumber,
-      error: e.message
-    });
-  }
-}
-
-function delay(ms) {
-  return new Promise(res => setTimeout(res, ms));
+  });
 }

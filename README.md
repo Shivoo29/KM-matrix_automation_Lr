@@ -66,61 +66,42 @@ Example:
 6. **Verify** that the corresponding PDF drawings are saved to your Downloads folder.
 7. **Check** that the downloaded files follow the specified naming convention.
 
-## ⚙️ Backend Scraper Setup (v2)
+## ⚙️ Final Setup Instructions
 
-Due to corporate security policies, the scraper cannot launch its own browser and log in. Instead, it connects to a browser that you open manually. Follow these steps carefully.
+Follow these steps on your company laptop to configure the full extension and backend scraper.
 
-### 1. Prerequisites
-- **Python 3.8+** installed.
-- **Microsoft Edge** browser installed.
-
-### 2. Setup Python Environment (First time only)
-If you have not done so already, you need to create a Python virtual environment and install the dependencies.
+### Step 1: Setup the Python Environment (First Time Only)
 
 1.  **Open a terminal** in the project directory.
-2.  **Create the environment:**
+2.  **Create a virtual environment:** `python -m venv venv`
+3.  **Activate the environment:** `.\venv\Scripts\activate` (on Windows).
+4.  **Install dependencies:** `pip install -r requirements.txt`
+
+### Step 2: Install the Native Messaging Host
+
+This critical step connects the browser extension to the Python script.
+
+1.  **Load your extension in Edge.** Go to `edge://extensions/`, make sure "Developer mode" is on, and click "Load unpacked" to select your project folder.
+2.  **Find your extension's ID.** On the extensions page, find your "KM Matrix Automation" extension. The ID is a long string of letters (e.g., `fmkadmapgofadopljbjfkapdkoienihi`). Copy it.
+3.  **Edit `install.bat`.** Open the `install.bat` file in a text editor. Replace the placeholder `YOUR_EXTENSION_ID_HERE` with the actual ID you just copied. Save the file.
+4.  **Run the installer.** In your terminal (no virtual environment needed), run the script:
     ```bash
-    python3 -m venv venv
+    install.bat
     ```
-3.  **Activate the environment:**
-    - On **Windows**: `.\venv\Scripts\activate`
-    - On **macOS/Linux**: `source venv/bin/activate`
-4.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
+    You should see a success message.
+
+### Step 3: Run the Automation
+
+This is the process you will follow for daily use.
+
+1.  **Force-quit all Edge processes.** Open **Task Manager** (`Ctrl+Shift+Esc`) and end every `msedge.exe` task.
+2.  **Launch Edge for automation.** Open a Command Prompt or PowerShell and run:
+    ```powershell
+    # In PowerShell
+    & "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-port=9222
     ```
-
-### 3. How to Run the Scraper
-This is the process you will follow each time you want to use the tool.
-
-**Step A: Launch Microsoft Edge with Remote Debugging**
-
-1.  **Close all running instances of Microsoft Edge.** This is important.
-2.  **Open a Command Prompt (cmd.exe) or PowerShell** on Windows.
-3.  **Launch Edge with a special command.** Copy and paste the following command into your terminal and press Enter:
-    ```cmd
-    start msedge --remote-debugging-port=9222
-    ```
-4.  A new Edge window will open. **Log in to the KM Matrix website** in this window as you normally would.
-
-**Step B: Run the Python Script**
-
-1.  **Open a new, separate terminal** in your project directory.
-2.  **Activate the virtual environment** (if it's not already active):
-    ```bash
-    .\venv\Scripts\activate
-    ```
-3.  **Run the scraper script** with a test part number:
-    ```bash
-    python3 scraper.py 810-341810-003
-    ```
-
-**Expected Result:**
-- The script will connect to your already-open Edge window.
-- It will open the part drawing in a new tab, and the PDF should download to your computer's main **Downloads** folder.
-- The script will print progress messages in your terminal.
-
-If this test is successful, the backend is ready. Let us know, and we can proceed to the final integration step.
+3.  In the new Edge window, **log in to the KM Matrix website** and leave the window open.
+4.  **Use the extension.** Click the extension icon in your browser toolbar, paste your part numbers, and click "Start". The downloads should begin automatically and save to your main Downloads folder.
 
 ## 🔧 Technical Details
 
