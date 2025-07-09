@@ -66,9 +66,9 @@ Example:
 6. **Verify** that the corresponding PDF drawings are saved to your Downloads folder.
 7. **Check** that the downloaded files follow the specified naming convention.
 
-## ⚙️ Final Setup Instructions
+## ⚙️ Final Setup for Chrome
 
-Follow these steps on your company laptop to configure the full extension and backend scraper.
+Follow these steps on your company laptop to configure the full extension and backend scraper for Google Chrome.
 
 ### Step 1: Setup the Python Environment (First Time Only)
 
@@ -79,9 +79,9 @@ Follow these steps on your company laptop to configure the full extension and ba
 
 ### Step 2: Install the Native Messaging Host
 
-This critical step connects the browser extension to the Python script.
+This critical step connects the Chrome browser to the Python script.
 
-1.  **Load your extension in Edge.** Go to `edge://extensions/`, make sure "Developer mode" is on, and click "Load unpacked" to select your project folder.
+1.  **Load your extension in Chrome.** Go to `chrome://extensions/`, make sure "Developer mode" is on, and click "Load unpacked" to select your project folder.
 2.  **Find your extension's ID.** On the extensions page, find your "KM Matrix Automation" extension. The ID is a long string of letters (e.g., `fmkadmapgofadopljbjfkapdkoienihi`). Copy it.
 3.  **Edit `install.bat`.** Open the `install.bat` file in a text editor. Replace the placeholder `YOUR_EXTENSION_ID_HERE` with the actual ID you just copied. Save the file.
 4.  **Run the installer.** In your terminal (no virtual environment needed), run the script:
@@ -94,13 +94,13 @@ This critical step connects the browser extension to the Python script.
 
 This is the process you will follow for daily use.
 
-1.  **Force-quit all Edge processes.** Open **Task Manager** (`Ctrl+Shift+Esc`) and end every `msedge.exe` task.
-2.  **Launch Edge for automation.** Open a Command Prompt or PowerShell and run:
+1.  **Force-quit all Chrome processes.** Open **Task Manager** (`Ctrl+Shift+Esc`) and end every `chrome.exe` task.
+2.  **Launch Chrome for automation.** Open a Command Prompt or PowerShell and run:
     ```powershell
     # In PowerShell
-    & "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-port=9222
+    & "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
     ```
-3.  In the new Edge window, **log in to the KM Matrix website** and leave the window open.
+3.  In the new Chrome window, **log in to the KM Matrix website** and leave the window open.
 4.  **Use the extension.** Click the extension icon in your browser toolbar, paste your part numbers, and click "Start". The downloads should begin automatically and save to your main Downloads folder.
 
 ## 🔧 Technical Details

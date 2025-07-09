@@ -6,8 +6,8 @@ import struct
 import time
 import os
 from selenium import webdriver
-from selenium.webdriver.edge.service import Service as EdgeService
-from selenium.webdriver.edge.options import Options as EdgeOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 
 # Helper function to send a message back to the Chrome extension
 def send_message(message):
@@ -40,15 +40,15 @@ def download_part_drawing(part_number, download_folder):
     send_message({"status": "info", "message": f"Connecting to browser for {part_number}"})
 
     try:
-        edge_options = EdgeOptions()
+        chrome_options = ChromeOptions()
         
         # --- Key Setting ---
-        # Connect to an already running instance of Edge that has remote debugging enabled.
-        edge_options.add_experimental_option("debuggerAddress", "localhost:9222")
+        # Connect to an already running instance of Chrome that has remote debugging enabled.
+        chrome_options.add_experimental_option("debuggerAddress", "localhost:9222")
         
-        # Path to the Edge WebDriver. 
-        service = EdgeService()
-        driver = webdriver.Edge(service=service, options=edge_options)
+        # Path to the Chrome WebDriver. 
+        service = ChromeService()
+        driver = webdriver.Chrome(service=service, options=chrome_options)
 
         # The script will now control the browser you opened manually.
         # We need to open the part in a new tab.

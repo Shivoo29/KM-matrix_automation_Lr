@@ -43,11 +43,11 @@ if %errorlevel% neq 0 (
 echo Manifest file created successfully.
 
 REM --- Register the Native Host with the Windows Registry ---
-REM This tells Microsoft Edge where to find the manifest file.
+REM This tells Google Chrome where to find the manifest file.
 
-set REG_KEY="HKEY_CURRENT_USER\Software\Microsoft\Edge\NativeMessagingHosts\%HOST_NAME%"
+set REG_KEY="HKEY_CURRENT_USER\Software\Google\Chrome\NativeMessagingHosts\%HOST_NAME%"
 
-echo Registering host with Edge...
+echo Registering host with Chrome...
 
 REG ADD %REG_KEY% /ve /t REG_SZ /d %MANIFEST_PATH% /f
 
