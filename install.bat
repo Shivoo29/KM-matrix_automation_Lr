@@ -4,10 +4,10 @@ setlocal
 REM --- This script sets up the Native Messaging host to connect the extension to the Python scraper ---
 
 REM Name of the Native Messaging host
-set HOST_NAME=com.gemini.km_matrix_automator
+set HOST_NAME=km_matrix_automator
 
 REM Get the full path to the directory where this script is located
-set SCRIPT_DIR=%~dp0
+set SCRIPT_DIR=%dp0~
 
 REM Construct the full path to the Python scraper script
 REM The extra "" are to handle potential spaces in the path
@@ -18,7 +18,7 @@ set MANIFEST_PATH="%SCRIPT_DIR%%HOST_NAME%.json"
 
 REM Get the ID of the extension. 
 REM IMPORTANT: Replace this with your actual extension ID from edge://extensions
-set EXTENSION_ID=YOUR_EXTENSION_ID_HERE
+set EXTENSION_ID=pmpgakonnakhgfjnheooicnmghimaban
 
 REM --- Create the Native Host Manifest JSON file ---
 echo Creating Native Host manifest file at %MANIFEST_PATH%...

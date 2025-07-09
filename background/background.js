@@ -2,7 +2,7 @@ let isRunning = false;
 let queue = [];
 let completed = 0;
 let total = 0;
-const NATIVE_HOST_NAME = "com.gemini.km_matrix_automator";
+const NATIVE_HOST_NAME = "km_matrix_automator";
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'start') {
