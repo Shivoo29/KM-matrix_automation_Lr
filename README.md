@@ -94,11 +94,15 @@ This critical step connects the Chrome browser to the Python script.
 
 This is the process you will follow for daily use.
 
-1.  **Force-quit all Chrome processes.** Open **Task Manager** (`Ctrl+Shift+Esc`) and end every `chrome.exe` task.
+1.  **Force-quit all Chrome processes.** Open **Task Manager** (`Ctrl+Shift+Esc`) and end every `msedge.exe` task. OR Open you CDM with administrator access and type 
+    ```powershell
+    # In PowerShell
+    & taskkill /F /IM msedge.exe 
+    ```
 2.  **Launch Chrome for automation.** Open a Command Prompt or PowerShell and run:
     ```powershell
     # In PowerShell
-    & "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-port=9223 --user-data-dir="C:\edge_debug_profile"
+    & "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --remote-debugging-port=9223 --user-data-dir="C:\edge_debug_profile" --disable-popup-blocking --no-first-run --disable-default-apps --disable-extensions
     ```
 3.  In the new Chrome window, **log in to the KM Matrix website** and leave the window open.
 4.  **Use the extension.** Click the extension icon in your browser toolbar, paste your part numbers, and click "Start". The downloads should begin automatically and save to your main Downloads folder.
