@@ -149,6 +149,67 @@ def check_for_direct_pdf_link(driver, part_number):
     
     return False
 
+def try_direct_iframe_download(driver, part_number):
+    """Try to download directly from the iframe URL"""
+    send_message({"status": "info", "message": "Trying direct iframe download method"})
+    
+    try:
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        for i, iframe in enumerate(iframes):
+            iframe_src = iframe.get_attribute('src')
+            if iframe_src and 'getdwg' in iframe_src:
+                send_message({"status": "info", "message": f"Found PDF iframe with URL: {iframe_src}"})
+                
+                # Modify the download parameter to force download
+                if '&download=00' in iframe_src:
+                    download_url = iframe_src.replace('&download=00', '&download=01')
+                elif '&download=' not in iframe_src:
+                    download_url = iframe_src + '&download=01'
+                else:
+                    download_url = iframe_src
+                
+                send_message({"status": "info", "message": f"Navigating to download URL: {download_url}"})
+                driver.get(download_url)
+                time.sleep(3)
+                return True
+        
+        return False
+    except Exception as e:
+        send_message({"status": "warning", "message": f"Direct iframe download failed: {str(e)}"})
+        return False
+
+def check_downloads_folder(download_folder, part_number, timeout=60):
+    """Check for any new PDF files in the downloads folder"""
+    send_message({"status": "info", "message": f"Checking downloads folder: {download_folder}"})
+    
+    # Get initial list of files
+    initial_files = set()
+    if os.path.exists(download_folder):
+        initial_files = set(os.listdir(download_folder))
+    
+    start_time = time.time()
+    
+    while time.time() - start_time < timeout:
+        if os.path.exists(download_folder):
+            current_files = set(os.listdir(download_folder))
+            new_files = current_files - initial_files
+            
+            # Check for PDF files
+            pdf_files = [f for f in new_files if f.endswith('.pdf')]
+            if pdf_files:
+                send_message({"status": "info", "message": f"Found new PDF files: {pdf_files}"})
+                newest_pdf = max([os.path.join(download_folder, f) for f in pdf_files], key=os.path.getctime)
+                return newest_pdf
+            
+            # Check for .crdownload files (Chrome-style) or .partial files
+            temp_files = [f for f in new_files if f.endswith(('.crdownload', '.partial', '.tmp'))]
+            if temp_files:
+                send_message({"status": "info", "message": f"Download in progress: {temp_files}"})
+        
+        time.sleep(1)
+    
+    return None
+
 def download_part_drawing(part_number, download_folder=None):
     send_message({"status": "info", "message": f"Connecting to browser for {part_number}"})
 
@@ -185,20 +246,24 @@ def download_part_drawing(part_number, download_folder=None):
         # Try multiple methods to download the PDF
         download_success = False
         
-        # Method 1: Check for direct PDF links first
-        if check_for_direct_pdf_link(driver, part_number):
+        # Method 1: Try direct iframe download (most likely to work for this site)
+        if try_direct_iframe_download(driver, part_number):
+            download_success = True
+        
+        # Method 2: Check for direct PDF links first
+        if not download_success and check_for_direct_pdf_link(driver, part_number):
             send_message({"status": "info", "message": "Found and clicked direct PDF link"})
             download_success = True
         
-        # Method 2: Try keyboard shortcut
+        # Method 3: Try keyboard shortcut
         if not download_success and try_keyboard_shortcut(driver):
             download_success = True
         
-        # Method 3: Try right-click save
+        # Method 4: Try right-click save
         if not download_success and try_right_click_save(driver):
             download_success = True
         
-        # Method 4: Look for save button in main document
+        # Method 5: Look for save button in main document
         if not download_success:
             save_selectors = [
                 "//button[@id='save']",
@@ -224,7 +289,7 @@ def download_part_drawing(part_number, download_folder=None):
                 except Exception as e:
                     send_message({"status": "debug", "message": f"Selector {selector} failed: {str(e)}"})
         
-        # Method 5: Check inside iframes
+        # Method 6: Check inside iframes
         if not download_success:
             iframes = driver.find_elements(By.TAG_NAME, "iframe")
             for i, iframe in enumerate(iframes):
@@ -271,44 +336,31 @@ def download_part_drawing(part_number, download_folder=None):
                     send_message({"status": "info", "message": "Found PDF references in page source"})
                     # You might need to parse the page source to find the actual PDF URL
         
-        # Wait for download to complete
+        # Wait for download to complete - use the enhanced checker
         if download_success:
-            clean_part = part_number.replace('-', '')
-            expected_filename = f"LAM-{clean_part}-L0-MAIN.pdf"
-            
             if not os.path.exists(download_folder):
                 os.makedirs(download_folder)
             
-            expected_filepath = os.path.join(download_folder, expected_filename)
-            temp_filepath = expected_filepath + ".crdownload"
+            # Check for downloads with flexible filename matching
+            downloaded_file = check_downloads_folder(download_folder, part_number, timeout=60)
             
-            timeout = 60
-            start_time = time.time()
-            download_complete = False
-            
-            send_message({"status": "info", "message": f"Waiting for download in: {download_folder}"})
-            
-            while time.time() - start_time < timeout:
-                if os.path.exists(expected_filepath) and not os.path.exists(temp_filepath):
-                    time.sleep(2)
-                    send_message({"status": "info", "message": f"File {expected_filename} downloaded successfully."})
-                    download_complete = True
-                    break
-                time.sleep(1)
-            
-            if not download_complete:
-                # Check for any new PDF files in the download folder
-                pdf_files = [f for f in os.listdir(download_folder) if f.endswith('.pdf')]
-                if pdf_files:
-                    send_message({"status": "info", "message": f"Found PDF files in download folder: {pdf_files}"})
-                    # Use the most recent PDF file
-                    newest_pdf = max([os.path.join(download_folder, f) for f in pdf_files], key=os.path.getctime)
-                    send_message({"status": "info", "message": f"Using newest PDF: {newest_pdf}"})
-                    return {"status": "success", "partNumber": part_number, "filepath": newest_pdf}
+            if downloaded_file:
+                send_message({"status": "info", "message": f"Download completed: {downloaded_file}"})
+                return {"status": "success", "partNumber": part_number, "filepath": downloaded_file}
+            else:
+                # Final fallback - check if Ctrl+S opened a save dialog
+                send_message({"status": "warning", "message": "No file found in downloads folder. Checking default downloads..."})
+                
+                # Check system's default Downloads folder
+                default_downloads = os.path.join(os.path.expanduser('~'), 'Downloads')
+                system_downloaded = check_downloads_folder(default_downloads, part_number, timeout=10)
+                
+                if system_downloaded:
+                    send_message({"status": "info", "message": f"Found file in system Downloads: {system_downloaded}"})
+                    return {"status": "success", "partNumber": part_number, "filepath": system_downloaded}
                 else:
-                    raise TimeoutError(f"Download timed out after {timeout} seconds.")
+                    raise TimeoutError(f"Download timed out after 60 seconds. File may have been saved elsewhere.")
             
-            return {"status": "success", "partNumber": part_number, "filepath": expected_filepath}
         else:
             raise RuntimeError("Could not find any way to download the PDF. Please check the page structure manually.")
 
