@@ -10,11 +10,12 @@ h1 {
   font-size: 1.2em;
   margin-bottom: 10px;
 }
+
 label {
-  font-weight: bold;
   margin-top: 10px;
   display: block;
 }
+
 textarea {
   width: 100%;
   resize: vertical;
@@ -43,29 +44,6 @@ button:disabled {
   background: #b0b0b0;
   cursor: not-allowed;
 }
-.progress-section {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-progress {
-  width: 120px;
-  height: 16px;
-}
-.folder-section {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-#folderSelect {
-  flex: 1;
-  padding: 4px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background: #e9ecef;
-}
 .log-section {
   margin-top: 10px;
 }
@@ -78,4 +56,4 @@ progress {
   height: 80px;
   overflow-y: auto;
   white-space: pre-wrap;
-} 
+}

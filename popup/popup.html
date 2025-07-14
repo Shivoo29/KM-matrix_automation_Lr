@@ -1,32 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>KM Matrix Automation</title>
-  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
   <h1>KM Matrix Automation</h1>
+
   <label for="partNumbers">Part Numbers (one per line):</label>
-  <textarea id="partNumbers" rows="6" placeholder="810-341810-003\n710-341810-101\n..."></textarea>
+  <textarea id="partNumbers" rows="6" placeholder="add different partNumbers(one per line)..."></textarea>
+
   <div class="controls">
-    <button id="startBtn">Start</button>
-    <button id="stopBtn" disabled>Stop</button>
+    <button id="download">Download PDFs</button>
   </div>
-  <div class="progress-section">
-    <progress id="progressBar" value="0" max="100"></progress>
-    <span id="progressText">0/0</span>
-  </div>
-  <div class="folder-section">
-    <label for="folderSelect">Download Folder:</label>
-    <input type="text" id="folderSelect" placeholder="Default (Downloads)" readonly>
-    <button id="chooseFolderBtn">Choose</button>
-  </div>
+
   <div class="log-section">
     <label>Status Log:</label>
     <pre id="statusLog"></pre>
   </div>
+
   <script src="popup.js"></script>
 </body>
-</html> 
+</html>

@@ -1,78 +1,51 @@
-let isRunning = false;
-let queue = [];
-let completed = 0;
-let total = 0;
-const NATIVE_HOST_NAME = "km_matrix_automator";
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  if (message.action === 'start') {
+    const parts = message.parts;
+    let completed = 0;
+    const total = parts.length;
 
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.action === 'start') {
-    if (isRunning) return;
-    isRunning = true;
-    queue = msg.parts;
-    completed = 0;
-    total = queue.length;
-    processQueue();
+    for (const [index, part] of parts.entries()) {
+      const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${part}`;
+      const tab = await chrome.tabs.create({ url, active: false });
+
+      // Wait 7 seconds for the page to load
+      setTimeout(() => {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            const iframe = document.querySelector('iframe');
+            if (iframe) {
+              chrome.runtime.sendMessage({
+                action: 'download',
+                url: iframe.src,
+                partNumber: new URLSearchParams(window.location.search).get('partnumber')
+              });
+            } else {
+              chrome.runtime.sendMessage({
+                action: 'progress',
+                log: 'No iframe found on the page.'
+              });
+            }
+          }
+        });
+      }, 7000);
+    }
+
     sendResponse({ status: "started" });
-  } else if (msg.action === 'stop') {
-    isRunning = false;
-    queue = [];
-    chrome.runtime.sendMessage({ action: 'done', log: 'Automation stopped by user.' });
   }
-  return true; // Indicates that the response will be sent asynchronously
-});
 
-async function processQueue() {
-  for (let i = 0; i < queue.length && isRunning; i++) {
-    const partNumber = queue[i];
-    
+  if (message.action === 'download') {
+    const filename = `${message.partNumber || 'file'}.pdf`;
+    chrome.downloads.download({
+      url: message.url,
+      filename
+    });
+
     chrome.runtime.sendMessage({
       action: 'progress',
-      completed,
-      total,
-      log: `[${i + 1}/${total}] Processing: ${partNumber}`
+      log: `Downloaded: ${filename}`
     });
-
-    try {
-      const response = await sendNativeMessage(partNumber);
-      
-      if (response.status === 'success') {
-        completed++;
-        chrome.runtime.sendMessage({
-          action: 'progress',
-          completed,
-          total,
-          log: `Success: ${partNumber} downloaded to ${response.filepath}`
-        });
-      } else {
-        throw new Error(response.error || response.message || 'Unknown error from host');
-      }
-    } catch (e) {
-      chrome.runtime.sendMessage({
-        action: 'progress',
-        completed,
-        total,
-        log: `Error: ${partNumber} - ${e.message}`
-      });
-    }
   }
 
-  isRunning = false;
-  chrome.runtime.sendMessage({ action: 'done', log: 'Automation complete.' });
-}
-
-function sendNativeMessage(partNumber) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { partNumber }, (response) => {
-      if (chrome.runtime.lastError) {
-        // This error occurs if the host is not found or fails to launch.
-        return reject(new Error(`Native host error: ${chrome.runtime.lastError.message}`));
-      }
-      if (response) {
-        resolve(response);
-      } else {
-        // This might happen if the script exits without sending a message.
-        reject(new Error('Received no response from native host.'));
-      }
-    });
-  });
-}
+  return true;
+});
