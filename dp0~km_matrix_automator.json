@@ -1,9 +1,0 @@
-{
-  "name": "km_matrix_automator",
-  "description": "Host for KM Matrix Automation Extension",
-  "path": "dp0~scraper.py",
-  "type": "stdio",
-  "allowed_origins": [
-    "chrome-extension://pmpgakonnakhgfjnheooicnmghimaban/"
-  ]
-}
