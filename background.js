@@ -1,31 +1,49 @@
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === 'startDownload') {
-    for (const part of message.partNumbers) {
+    const partNumbers = message.partNumbers;
+
+    for (const part of partNumbers) {
       const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${part}`;
       const tab = await chrome.tabs.create({ url, active: false });
 
       setTimeout(() => {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          func: () => {
+          func: (partNumber) => {
             const iframe = document.querySelector('iframe');
-            if (iframe) {
-              console.log("Found iframe:", iframe.src);
-              chrome.runtime.sendMessage({ action: 'download', url: iframe.src });
+            if (iframe && iframe.src) {
+              chrome.runtime.sendMessage({
+                action: 'download',
+                url: iframe.src,
+                partNumber
+              });
             } else {
-              console.log("No iframe found on the page.");
+              chrome.runtime.sendMessage({
+                action: 'progress',
+                log: `❌ No iframe found for ${partNumber}`
+              });
             }
-          }
+          },
+          args: [part]
         });
-      }, 7000); // Increased delay to 7 seconds
+      }, 7000); // Adjust delay if needed
     }
+
+    sendResponse({ status: "started" });
   }
 
   if (message.action === 'download') {
-    console.log("Downloading from:", message.url);
+    const filename = `${message.partNumber || 'file'}.pdf`;
     chrome.downloads.download({
       url: message.url,
-      filename: "downloaded_file.pdf"
+      filename
+    });
+
+    chrome.runtime.sendMessage({
+      action: 'progress',
+      log: `✅ Downloaded: ${filename}`
     });
   }
+
+  return true;
 });

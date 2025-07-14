@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "PDF Downloader",
+  "name": "KM-matrix_automation_Lr",
   "version": "1.0",
   "permissions": ["downloads", "tabs", "scripting"],
   "host_permissions": ["<all_urls>"],
