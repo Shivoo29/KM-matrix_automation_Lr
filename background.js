@@ -9,24 +9,60 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       setTimeout(() => {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          func: (partNumber) => {
-            const iframe = document.querySelector('iframe');
-            if (iframe && iframe.src) {
-              chrome.runtime.sendMessage({
-                action: 'download',
-                url: iframe.src,
-                partNumber
+          func: async (partNumber, tabId) => {
+            const waitForViewer = () => {
+              return new Promise((resolve) => {
+                const interval = setInterval(() => {
+                  const candidates = [
+                    ...document.querySelectorAll('iframe'),
+                    ...document.querySelectorAll('embed'),
+                    ...document.querySelectorAll('object')
+                  ];
+
+                  for (const el of candidates) {
+                    if (el.src && el.src.startsWith('http')) {
+                      clearInterval(interval);
+                      resolve(el.src);
+                      return;
+                    }
+                  }
+                }, 1000);
+
+                setTimeout(() => {
+                  clearInterval(interval);
+                  resolve(null);
+                }, 30000);
               });
+            };
+
+            const viewerSrc = await waitForViewer();
+
+            if (viewerSrc) {
+              if (viewerSrc.includes("Drawing for this part is not available")) {
+                chrome.runtime.sendMessage({
+                  action: 'progress',
+                  log: `⚠️ Drawing not available for ${partNumber}`,
+                  tabId
+                });
+              } else {
+                chrome.runtime.sendMessage({
+                  action: 'download',
+                  url: viewerSrc,
+                  partNumber,
+                  tabId
+                });
+              }
             } else {
               chrome.runtime.sendMessage({
                 action: 'progress',
-                log: `❌ No iframe found for ${partNumber}`
+                log: `❌ No viewer or drawing found for ${partNumber}`,
+                tabId
               });
             }
           },
-          args: [part]
+          args: [part, tab.id]
         });
-      }, 7000); // Adjust delay if needed
+      }, 5000);
     }
 
     sendResponse({ status: "started" });
@@ -43,6 +79,17 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       action: 'progress',
       log: `✅ Downloaded: ${filename}`
     });
+
+    if (message.tabId) {
+      chrome.tabs.remove(message.tabId);
+    }
+  }
+
+  if (message.action === 'progress') {
+    console.log(message.log);
+    if (message.tabId) {
+      chrome.tabs.remove(message.tabId);
+    }
   }
 
   return true;
