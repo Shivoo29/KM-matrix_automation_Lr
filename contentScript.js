@@ -108,9 +108,9 @@
       let interval = setInterval(() => {
           const element = document.querySelector(selector);
           if (element) {
-              console.log(`Element '${selector}' found. Pausing for 2 seconds before extraction.`);
+              console.log(`Element '${selector}' found. Proceeding with extraction.`);
               clearInterval(interval);
-              setTimeout(callback, 2000); // Wait 2 seconds for the page to render the rows
+              callback();
           }
       }, 1000);
 
