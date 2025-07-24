@@ -88,18 +88,56 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     bomData = message.parts;
     console.log('📦 BOM Data Extracted:', bomData);
 
-    // Download PDFs for all parts
-    bomData.forEach(part => {
-      const partNumber = part.partNumber;
-      const nestingLevel = part.nestingLevel;
-      const folderPath = `${bomData[0].partNumber}/${'sub/'.repeat(nestingLevel)}${partNumber}.pdf`;
+    if (bomData.length === 0) return;
 
-      const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${partNumber}`;
-      chrome.downloads.download({
-        url,
-        filename: folderPath
-      });
+    const mainPartNumber = bomData[0].partNumber;
+    const mainPartUrl = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${mainPartNumber}`;
+    // Download main part PDF
+    chrome.downloads.download({
+        url: mainPartUrl,
+        filename: `${mainPartNumber}/${mainPartNumber}.pdf`
     });
+
+    const parentPathStack = []; // a stack of part numbers representing the current path
+
+    for (let i = 1; i < bomData.length; i++) {
+        const part = bomData[i];
+        const partNumber = part.partNumber;
+        const nestingLevel = part.nestingLevel; // 1-based for sub-parts
+
+        // Adjust the path stack based on nesting level
+        while (parentPathStack.length >= nestingLevel) {
+            parentPathStack.pop();
+        }
+
+        // Check if the current part is a parent of the next part
+        const isParent = (i + 1 < bomData.length) && (bomData[i+1].nestingLevel > nestingLevel);
+
+        let pathPrefix = `${mainPartNumber}/bom_parts/`;
+        if (parentPathStack.length > 0) {
+            pathPrefix += parentPathStack.join('/') + '/';
+        }
+
+        let downloadPath;
+        if (isParent) {
+            // It's a parent, download its PDF inside its own folder
+            downloadPath = `${pathPrefix}${partNumber}/${partNumber}.pdf`;
+        } else {
+            // It's a leaf node, download it directly
+            downloadPath = `${pathPrefix}${partNumber}.pdf`;
+        }
+
+        // Now, if it's a parent, push it to the stack for its children
+        if (isParent) {
+            parentPathStack.push(partNumber);
+        }
+
+        const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${partNumber}`;
+        chrome.downloads.download({
+            url,
+            filename: downloadPath
+        });
+    }
   }
 
   // Handle individual PDF download
