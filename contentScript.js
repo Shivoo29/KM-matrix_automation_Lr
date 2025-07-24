@@ -29,7 +29,7 @@
         sc: cells[15].innerText.trim(),
         ccm: cells[16].innerText.trim(),
         cmrcl: cells[17].innerText.trim(),
-        mtl: cells[18].innerText.trim(),
+        mtl: a[18].innerText.trim(),
         nestingLevel: row.querySelectorAll('.line-tree').length
       };
 
@@ -66,7 +66,8 @@
     const expandAll = () => {
         return new Promise(async (resolve) => {
             let keepTrying = true;
-            while(keepTrying) {
+            let cycles = 0;
+            while(keepTrying && cycles < 20) { // Safety break after 20 cycles
                 const expanders = Array.from(document.querySelectorAll(expanderSelector)).filter(
                     (expander) => !expander.hasAttribute('data-gemini-clicked')
                 );
@@ -74,13 +75,15 @@
                 if (expanders.length === 0) {
                     keepTrying = false;
                 } else {
+                    console.log(`Found ${expanders.length} new rows to expand...`);
                     for (const expander of expanders) {
                         expander.click();
                         expander.setAttribute('data-gemini-clicked', 'true');
-                        await new Promise(r => setTimeout(r, 500));
+                        await new Promise(r => setTimeout(r, 500)); // Stagger clicks
                     }
-                    await new Promise(r => setTimeout(r, 1000));
+                    await new Promise(r => setTimeout(r, 1000)); // Wait for UI to update
                 }
+                cycles++;
             }
             resolve();
         });
@@ -92,27 +95,32 @@
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const parts = parseTable();
-    console.log(`Found ${parts.length} parts.`);
-    exportToExcel(parts);
-    chrome.runtime.sendMessage({ action: 'bomExtracted', parts });
+    if (parts.length > 0) {
+        console.log(`Found and parsed ${parts.length} parts.`);
+        exportToExcel(parts);
+        chrome.runtime.sendMessage({ action: 'bomExtracted', parts });
+    } else {
+        console.error("Error: No parts were found after attempting to expand and parse the table.");
+    }
   };
 
-  const observer = new MutationObserver((mutations, obs) => {
-    const bomTable = document.querySelector('div[data-testid="BOM-Finder-list"] .k-grid-table');
-    if (bomTable) {
-      console.log("BOM table found. Starting extraction process.");
-      obs.disconnect();
-      expandAndExtract();
-    }
-  });
+  const waitForElement = (selector, callback) => {
+      let interval = setInterval(() => {
+          const element = document.querySelector(selector);
+          if (element) {
+              console.log(`Element '${selector}' found. Proceeding with extraction.`);
+              clearInterval(interval);
+              callback();
+          }
+      }, 1000);
 
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+      setTimeout(() => {
+          clearInterval(interval);
+          console.error(`Timeout: Could not find element '${selector}' after 30 seconds.`);
+      }, 30000);
+  };
 
-  setTimeout(() => {
-      observer.disconnect();
-  }, 30000);
+  console.log("Content script injected. Waiting for BOM table to appear...");
+  waitForElement('div[data-testid="BOM-Finder-list"] .k-grid-table', expandAndExtract);
 
 })();
