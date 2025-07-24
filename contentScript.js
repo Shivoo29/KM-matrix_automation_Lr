@@ -29,7 +29,7 @@
         sc: cells[15].innerText.trim(),
         ccm: cells[16].innerText.trim(),
         cmrcl: cells[17].innerText.trim(),
-        mtl: a[18].innerText.trim(),
+        mtl: cells[18].innerText.trim(),
         nestingLevel: row.querySelectorAll('.line-tree').length
       };
 
@@ -108,9 +108,9 @@
       let interval = setInterval(() => {
           const element = document.querySelector(selector);
           if (element) {
-              console.log(`Element '${selector}' found. Proceeding with extraction.`);
+              console.log(`Element '${selector}' found. Pausing for 2 seconds before extraction.`);
               clearInterval(interval);
-              callback();
+              setTimeout(callback, 2000); // Wait 2 seconds for the page to render the rows
           }
       }, 1000);
 
