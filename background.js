@@ -1,158 +1,127 @@
-/**
- * This function handles the core logic for downloading a single PDF.
- * It opens the part viewer page in a hidden tab, injects a script to find the actual PDF URL,
- * and then sends a message back to trigger the download and close the tab.
- * @param {string} partNumber - The part number to download.
- * @param {string} filename - The full path where the file should be saved.
- */
-async function processPartForPdf(partNumber, filename) {
-  const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${partNumber}`;
-  // The `active: false` option is critical. It ensures the new tab does NOT get focus.
-  const tab = await chrome.tabs.create({ url, active: false });
-
-  // Give the page a moment to start loading before injecting the script.
-  setTimeout(() => {
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: (partNum, tabId, fname) => {
-        // This function is injected and runs on the DViewerX page.
-        const waitForViewer = () => {
-          return new Promise((resolve) => {
-            const interval = setInterval(() => {
-              const candidates = [
-                ...document.querySelectorAll('iframe'),
-                ...document.querySelectorAll('embed'),
-                ...document.querySelectorAll('object')
-              ];
-              for (const el of candidates) {
-                if (el.src && el.src.startsWith('http')) {
-                  clearInterval(interval);
-                  resolve(el.src);
-                  return;
-                }
-              }
-            }, 1000);
-
-            // Fail-safe timeout after 30 seconds.
-            setTimeout(() => {
-              clearInterval(interval);
-              resolve(null);
-            }, 30000);
-          });
-        };
-
-        waitForViewer().then(viewerSrc => {
-          if (viewerSrc) {
-            // Found the PDF source, send it back for download.
-            chrome.runtime.sendMessage({
-              action: 'downloadFile',
-              url: viewerSrc,
-              filename: fname,
-              tabId: tabId
-            });
-          } else {
-            // Failed to find the PDF.
-            chrome.runtime.sendMessage({
-              action: 'logAndClose',
-              log: `❌ No viewer or drawing found for ${partNum}`,
-              tabId: tabId
-            });
-          }
-        });
-      },
-      args: [partNumber, tab.id, filename]
-    });
-  }, 5000);
-}
+let bomData = [];
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-  // Listener for manual PDF downloads from the popup.
+  // Manual PDF download for part numbers
   if (message.action === 'startDownload') {
-    for (const partNumber of message.partNumbers) {
-      await processPartForPdf(partNumber, `${partNumber}.pdf`);
+    const partNumbers = message.partNumbers;
+
+    for (const part of partNumbers) {
+      const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${part}`;
+      const tab = await chrome.tabs.create({ url, active: false });
+
+      setTimeout(() => {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: async (partNumber, tabId) => {
+            const waitForViewer = () => {
+              return new Promise((resolve) => {
+                const interval = setInterval(() => {
+                  const candidates = [
+                    ...document.querySelectorAll('iframe'),
+                    ...document.querySelectorAll('embed'),
+                    ...document.querySelectorAll('object')
+                  ];
+
+                  for (const el of candidates) {
+                    if (el.src && el.src.startsWith('http')) {
+                      clearInterval(interval);
+                      resolve(el.src);
+                      return;
+                    }
+                  }
+                }, 1000);
+
+                setTimeout(() => {
+                  clearInterval(interval);
+                  resolve(null);
+                }, 30000);
+              });
+            };
+
+            const viewerSrc = await waitForViewer();
+
+            if (viewerSrc) {
+              chrome.runtime.sendMessage({
+                action: 'download',
+                url: viewerSrc,
+                partNumber,
+                tabId
+              });
+            } else {
+              chrome.runtime.sendMessage({
+                action: 'progress',
+                log: `❌ No viewer or drawing found for ${partNumber}`,
+                tabId
+              });
+            }
+          },
+          args: [part, tab.id]
+        });
+      }, 5000);
     }
+
     sendResponse({ status: "started" });
   }
 
-  // Listener to start the main BOM scraping process.
+  // BOM scraping and PDF download
   if (message.action === 'scrapeBOM') {
-    const partNumber = message.partNumbers[0]; // We only process the first part number for BOM scraping.
-    if (!partNumber) return;
+    const partNumbers = message.partNumbers;
 
-    const url = `https://kmmatrix.fremont.lamrc.net/BOMFinder?q=${partNumber}`;
-    // Open the BOM Finder page in a background tab using `active: false`.
-    await chrome.tabs.create({ url, active: false });
+    for (const part of partNumbers) {
+      const url = `https://kmmatrix.fremont.lamrc.net/BOMFinder?q=${part}`;
+      const tab = await chrome.tabs.create({ url, active: false });
+
+      // Inject content script after page loads
+      setTimeout(() => {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['contentScript.js']
+        });
+      }, 5000);
+    }
+
     sendResponse({ status: "BOM scraping started" });
   }
 
-  // Listener for when the content script has extracted all the BOM data.
+  // Receive BOM data from content script
   if (message.action === 'bomExtracted') {
-    console.log('📦 BOM Data Extracted:', message.parts);
-    // Close the now-unneeded BOM finder tab.
-    if (sender.tab && sender.tab.id) {
-      chrome.tabs.remove(sender.tab.id);
-    }
+    bomData = message.parts;
+    console.log('📦 BOM Data Extracted:', bomData);
 
-    const bomData = message.parts;
-    if (!bomData || bomData.length === 0) return;
+    // Download PDFs for all parts
+    bomData.forEach(part => {
+      const partNumber = part.partNumber;
+      const nestingLevel = part.nestingLevel;
+      const folderPath = `${bomData[0].partNumber}/${'sub/'.repeat(nestingLevel)}${partNumber}.pdf`;
 
-    const mainPartNumber = bomData[0].partNumber;
-    let parentPathStack = [];
-
-    // Process all parts sequentially to avoid opening too many tabs at once.
-    for (const [index, part] of bomData.entries()) {
-      const { partNumber, nestingLevel } = part;
-      if (!partNumber) continue;
-
-      let downloadPath;
-
-      if (nestingLevel === 0) {
-        // This is the main part.
-        downloadPath = `${partNumber}/${partNumber}.pdf`;
-      } else {
-        // This is a sub-part.
-        while (parentPathStack.length >= nestingLevel) {
-          parentPathStack.pop();
-        }
-
-        const isParent = (index + 1 < bomData.length) && (bomData[index + 1].nestingLevel > nestingLevel);
-        let pathPrefix = `${mainPartNumber}/bom_parts/`;
-        if (parentPathStack.length > 0) {
-          pathPrefix += parentPathStack.join('/') + '/';
-        }
-
-        if (isParent) {
-          downloadPath = `${pathPrefix}${partNumber}/${partNumber}.pdf`;
-          parentPathStack.push(partNumber);
-        } else {
-          downloadPath = `${pathPrefix}${partNumber}.pdf`;
-        }
-      }
-
-      console.log(`Queuing download for ${partNumber} to ${downloadPath}`);
-      await processPartForPdf(partNumber, downloadPath);
-    }
+      const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${partNumber}`;
+      chrome.downloads.download({
+        url,
+        filename: folderPath
+      });
+    });
   }
 
-  // Listener to handle the actual download and tab closing.
-  if (message.action === 'downloadFile') {
-    console.log(`⬇️ Downloading ${message.filename}`);
+  // Handle individual PDF download
+  if (message.action === 'download') {
+    const filename = `${message.partNumber || 'file'}.pdf`;
     chrome.downloads.download({
       url: message.url,
-      filename: message.filename
+      filename
     });
+
     if (message.tabId) {
       chrome.tabs.remove(message.tabId);
     }
   }
 
-  // Listener to log errors and close tabs that failed.
-  if (message.action === 'logAndClose') {
+  // Log progress and close tab
+  if (message.action === 'progress') {
     console.log(message.log);
     if (message.tabId) {
       chrome.tabs.remove(message.tabId);
     }
   }
 
-  return true; // Indicates that we will respond asynchronously.
+  return true;
 });
