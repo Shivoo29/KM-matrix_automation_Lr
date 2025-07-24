@@ -1,4 +1,7 @@
+let bomData = [];
+
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  // Manual PDF download for part numbers
   if (message.action === 'startDownload') {
     const partNumbers = message.partNumbers;
 
@@ -38,20 +41,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
             const viewerSrc = await waitForViewer();
 
             if (viewerSrc) {
-              if (viewerSrc.includes("Drawing for this part is not available")) {
-                chrome.runtime.sendMessage({
-                  action: 'progress',
-                  log: `⚠️ Drawing not available for ${partNumber}`,
-                  tabId
-                });
-              } else {
-                chrome.runtime.sendMessage({
-                  action: 'download',
-                  url: viewerSrc,
-                  partNumber,
-                  tabId
-                });
-              }
+              chrome.runtime.sendMessage({
+                action: 'download',
+                url: viewerSrc,
+                partNumber,
+                tabId
+              });
             } else {
               chrome.runtime.sendMessage({
                 action: 'progress',
@@ -68,6 +63,46 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     sendResponse({ status: "started" });
   }
 
+  // BOM scraping and PDF download
+  if (message.action === 'scrapeBOM') {
+    const partNumbers = message.partNumbers;
+
+    for (const part of partNumbers) {
+      const url = `https://kmmatrix.fremont.lamrc.net/BOMFinder?q=${part}`;
+      const tab = await chrome.tabs.create({ url, active: false });
+
+      // Inject content script after page loads
+      setTimeout(() => {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['contentScript.js']
+        });
+      }, 5000);
+    }
+
+    sendResponse({ status: "BOM scraping started" });
+  }
+
+  // Receive BOM data from content script
+  if (message.action === 'bomExtracted') {
+    bomData = message.parts;
+    console.log('📦 BOM Data Extracted:', bomData);
+
+    // Download PDFs for all parts
+    bomData.forEach(part => {
+      const partNumber = part.partNumber;
+      const nestingLevel = part.nestingLevel;
+      const folderPath = `${bomData[0].partNumber}/${'sub/'.repeat(nestingLevel)}${partNumber}.pdf`;
+
+      const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${partNumber}`;
+      chrome.downloads.download({
+        url,
+        filename: folderPath
+      });
+    });
+  }
+
+  // Handle individual PDF download
   if (message.action === 'download') {
     const filename = `${message.partNumber || 'file'}.pdf`;
     chrome.downloads.download({
@@ -75,16 +110,12 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       filename
     });
 
-    chrome.runtime.sendMessage({
-      action: 'progress',
-      log: `✅ Downloaded: ${filename}`
-    });
-
     if (message.tabId) {
       chrome.tabs.remove(message.tabId);
     }
   }
 
+  // Log progress and close tab
   if (message.action === 'progress') {
     console.log(message.log);
     if (message.tabId) {

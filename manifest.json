@@ -1,13 +1,26 @@
 {
   "manifest_version": 3,
   "name": "KM-matrix_automation_Lr",
-  "version": "1.0",
-  "permissions": ["downloads", "tabs", "scripting"],
-  "host_permissions": ["<all_urls>"],
+  "version": "1.1",
+  "permissions": [
+    "downloads",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://kmmatrix.fremont.lamrc.net/*"
+  ],
   "action": {
     "default_popup": "popup.html"
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://kmmatrix.fremont.lamrc.net/BOMFinder*"],
+      "js": ["contentScript.js", "xlsx.full.min.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
