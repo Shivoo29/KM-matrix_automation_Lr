@@ -7,6 +7,7 @@
  */
 async function processPartForPdf(partNumber, filename) {
   const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${partNumber}`;
+  // The `active: false` option is critical. It ensures the new tab does NOT get focus.
   const tab = await chrome.tabs.create({ url, active: false });
 
   // Give the page a moment to start loading before injecting the script.
@@ -79,7 +80,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     if (!partNumber) return;
 
     const url = `https://kmmatrix.fremont.lamrc.net/BOMFinder?q=${partNumber}`;
-    // Open the BOM Finder page in a background tab. The content script will be injected automatically by the manifest.
+    // Open the BOM Finder page in a background tab using `active: false`.
     await chrome.tabs.create({ url, active: false });
     sendResponse({ status: "BOM scraping started" });
   }
@@ -98,7 +99,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     const mainPartNumber = bomData[0].partNumber;
     let parentPathStack = [];
 
-    // Process all parts sequentially to avoid opening too many tabs.
+    // Process all parts sequentially to avoid opening too many tabs at once.
     for (const [index, part] of bomData.entries()) {
       const { partNumber, nestingLevel } = part;
       if (!partNumber) continue;
