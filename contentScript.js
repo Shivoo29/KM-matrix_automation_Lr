@@ -61,31 +61,34 @@
   };
 
   const expandAndExtract = async () => {
-    // This selector targets the clickable images that expand the rows.
     const expanderSelector = 'td.part-number-column img[style*="cursor: pointer"]';
 
-    let lastExpanderCount = -1;
-    // Loop until no new expander buttons appear, which means everything is expanded.
-    while (true) {
-        const expanders = document.querySelectorAll(expanderSelector);
-        if (expanders.length === lastExpanderCount) {
-            break;
-        }
-        lastExpanderCount = expanders.length;
+    const expandAll = () => {
+        return new Promise(async (resolve) => {
+            let keepTrying = true;
+            while(keepTrying) {
+                const expanders = Array.from(document.querySelectorAll(expanderSelector)).filter(
+                    (expander) => !expander.hasAttribute('data-gemini-clicked')
+                );
 
-        for (const expander of expanders) {
-            // We add a 'data-gemini-clicked' attribute to avoid re-clicking and causing an infinite loop.
-            if (!expander.hasAttribute('data-gemini-clicked')) {
-                expander.click();
-                expander.setAttribute('data-gemini-clicked', 'true');
-                // Wait for the new rows to be added to the page.
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                if (expanders.length === 0) {
+                    keepTrying = false;
+                } else {
+                    for (const expander of expanders) {
+                        expander.click();
+                        expander.setAttribute('data-gemini-clicked', 'true');
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+                    await new Promise(r => setTimeout(r, 1000));
+                }
             }
-        }
-    }
+            resolve();
+        });
+    };
+
+    await expandAll();
 
     console.log("Expansion complete. Parsing table...");
-    // A final wait to ensure the UI is fully updated.
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     const parts = parseTable();
@@ -94,7 +97,22 @@
     chrome.runtime.sendMessage({ action: 'bomExtracted', parts });
   };
 
-  // Wait a couple of seconds for the page's own scripts to initialize before we start.
-  setTimeout(expandAndExtract, 2000);
+  const observer = new MutationObserver((mutations, obs) => {
+    const bomTable = document.querySelector('div[data-testid="BOM-Finder-list"] .k-grid-table');
+    if (bomTable) {
+      console.log("BOM table found. Starting extraction process.");
+      obs.disconnect();
+      expandAndExtract();
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  setTimeout(() => {
+      observer.disconnect();
+  }, 30000);
 
 })();
