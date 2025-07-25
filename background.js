@@ -71,6 +71,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       const url = `https://kmmatrix.fremont.lamrc.net/BOMFinder?q=${part}`;
       const tab = await chrome.tabs.create({ url, active: false });
 
+
       // Inject content script after page loads
       setTimeout(() => {
         chrome.scripting.executeScript({
@@ -87,6 +88,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === 'bomExtracted') {
     bomData = message.parts;
     console.log('📦 BOM Data Extracted:', bomData);
+    console.log(message.partSpans)
 
     // Download PDFs for all parts
     bomData.forEach(part => {
