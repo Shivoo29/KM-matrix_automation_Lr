@@ -1,9 +1,419 @@
 <!DOCTYPE html>
 <html>
-  <body>
-    <textarea id="partNumbers" rows="10" cols="30" placeholder="Enter part numbers, one per line"></textarea><br>
-    <button id="download">Download PDFs</button>
-    <button id="scrapeBOM">Scrape BOM & Download All</button>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* Lam Research Brand Colors */
+        :root {
+            --primary-blue: #0066CC;
+            --secondary-blue: #004080;
+            --accent-orange: #FF6600;
+            --dark-bg: #1a1a2e;
+            --glass-bg: rgba(0, 102, 204, 0.1);
+            --success-green: #00CC66;
+            --warning-yellow: #FFB800;
+            --error-red: #FF4444;
+            --text-light: #ffffff;
+            --text-secondary: #B0C4DE;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 420px;
+            min-height: 500px;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--secondary-blue) 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-blue));
+            padding: 15px 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .input-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '📋';
+            font-size: 16px;
+        }
+
+        #partNumbers {
+            width: 100%;
+            min-height: 120px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(0, 102, 204, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            color: var(--text-light);
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        #partNumbers:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 15px rgba(0, 102, 204, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        #partNumbers::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .button-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            border: none;
+            border-radius: 8px;
+            padding: 14px 20px;
+            color: var(--text-light);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 102, 204, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--accent-orange), #FF8533);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary-blue);
+        }
+
+        .progress-bar-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            height: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-green), var(--primary-blue));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-success { color: var(--success-green); }
+        .stat-error { color: var(--error-red); }
+        .stat-warning { color: var(--warning-yellow); }
+
+        .logs-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+            border-left: 3px solid transparent;
+            padding-left: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .log-success { 
+            color: var(--success-green); 
+            border-left-color: var(--success-green);
+        }
+
+        .log-error { 
+            color: var(--error-red); 
+            border-left-color: var(--error-red);
+        }
+
+        .log-warning { 
+            color: var(--warning-yellow); 
+            border-left-color: var(--warning-yellow);
+        }
+
+        .log-info { 
+            color: var(--text-secondary); 
+            border-left-color: var(--primary-blue);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        .logs-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .logs-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+
+        .logs-container::-webkit-scrollbar-thumb {
+            background: var(--primary-blue);
+            border-radius: 3px;
+        }
+
+        .logs-container::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-blue);
+        }
+
+        /* Pulse Animation for Active Elements */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 102, 204, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0); }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            font-size: 11px;
+            border: 1px solid var(--primary-blue);
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🔬 LAM RESEARCH</div>
+        <div class="subtitle">KM Matrix Automation Tool</div>
+    </div>
+
+    <div class="container">
+        <div class="input-section">
+            <div class="section-title">Part Numbers</div>
+            <textarea 
+                id="partNumbers" 
+                rows="8" 
+                placeholder="Enter part numbers (one per line):&#10;&#10;Example:&#10;839-B75409-001&#10;796-095390-102&#10;202-010805-001"
+            ></textarea>
+        </div>
+
+        <div class="button-section">
+            <button id="download" class="btn tooltip">
+                <span>📥 Download PDFs</span>
+                <span class="tooltiptext">Download individual PDF files for entered part numbers</span>
+            </button>
+            <button id="scrapeBOM" class="btn btn-secondary tooltip">
+                <span>📊 BOM + PDFs</span>
+                <span class="tooltiptext">Extract complete BOM structure and download all PDFs + STP files</span>
+            </button>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-title">📈 Processing Status</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="stats">
+                <div class="stat-item stat-success">
+                    <span>✅</span>
+                    <span id="successCount">0</span>
+                </div>
+                <div class="stat-item stat-error">
+                    <span>❌</span>
+                    <span id="errorCount">0</span>
+                </div>
+                <div class="stat-item stat-warning">
+                    <span>⚠️</span>
+                    <span id="warningCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>📊</span>
+                    <span id="totalCount">0</span>
+                </div>
+            </div>
+            <div class="logs-container" id="logsContainer">
+                <div class="log-entry log-info">🚀 Ready to start processing...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>🔒 For Internal Use Only • Lam Research Proprietary</div>
+        <div style="margin-top: 5px; color: var(--primary-blue);">v1.2 • Proto4Lab Team</div>
+    </div>
+
     <script src="popup.js"></script>
-  </body>
+</body>
 </html>

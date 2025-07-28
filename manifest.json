@@ -1,26 +1,66 @@
 {
   "manifest_version": 3,
-  "name": "KM-matrix_automation_Lr",
-  "version": "1.1",
+  "name": "KM Matrix Automation Tool",
+  "version": "1.2",
+  "description": "Advanced automation tool for Lam Research KM Matrix system - Download PDFs, STP files, and extract BOM structures with intelligent folder organization",
   "permissions": [
     "downloads",
     "tabs",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "host_permissions": [
     "https://kmmatrix.fremont.lamrc.net/*"
+
   ],
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_title": "KM Matrix Automation - Lam Research",
+    "default_icon": {
+      "16": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iNCIgZmlsbD0iIzAwNjZDQyIvPgo8cGF0aCBkPSJNNCA2aDhNNCA5aDVNNiAxMmgzIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg==",
+      "32": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iOCIgZmlsbD0iIzAwNjZDQyIvPgo8cGF0aCBkPSJNOCAxMmgxNk04IDE4aDEwTTEyIDI0aDYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg=="
+    }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["https://kmmatrix.fremont.lamrc.net/BOMFinder*"],
-      "js": ["contentScript.js", "xlsx.full.min.js"],
-      "run_at": "document_idle"
+      "js": ["xlsx.full.min.js", "contentScript.js"],
+      "run_at": "document_idle",
+      "all_frames": false
     }
-  ]
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["xlsx.full.min.js"],
+      "matches": ["https://kmmatrix.fremont.lamrc.net/*"]
+    }
+  ],
+  "icons": {
+    "16": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iNCIgZmlsbD0iIzAwNjZDQyIvPgo8cGF0aCBkPSJNNCA2aDhNNCA5aDVNNiAxMmgzIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg==",
+    "48": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTIiIGZpbGw9IiMwMDY2Q0MiLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik00IDhoMjRNNCAyMGgxNE0xMCAyOGg4IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4KPC9zdmc+",
+    "128": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiByeD0iMjQiIGZpbGw9IiMwMDY2Q0MiLz4KPHN2ZyB4PSIxNiIgeT0iMTYiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDk2IDk2IiBmaWxsPSJub25lIj4KPHBhdGggZD0iTTEyIDI0aDcyTTEyIDQ4aDQ4TTE4IDcyaDM2IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4KPC9zdmc+"
+  },
+  "author": "Lam Research Proto4Lab Team",
+  "homepage_url": "https://lamresearch.com",
+  "minimum_chrome_version": "88",
+  "offline_enabled": false,
+  "short_name": "KM Matrix Auto",
+  "commands": {
+    "start-pdf-download": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+D"
+      },
+      "description": "Start PDF download operation"
+    },
+    "start-bom-extraction": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+B"
+      },
+      "description": "Start BOM extraction and download"
+    }
+  }
 }
