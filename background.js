@@ -33,6 +33,67 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       summary: downloadStats
     });
 
+  
+  
+  
+  async function processPartDownload(partNumber, folderName, mode) {
+  const url = `https://kmmatrix.fremont.lamrc.net/DViewerX?partnumber=${partNumber}`;
+  const tab = await chrome.tabs.create({ url, active: false });
+
+  setTimeout(() => {
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: async (partNumber, folderName, mode, tabId) => {
+        const waitForViewer = () => {
+          return new Promise((resolve) => {
+            const interval = setInterval(() => {
+              const candidates = [
+                ...document.querySelectorAll('iframe'),
+                ...document.querySelectorAll('embed'),
+                ...document.querySelectorAll('object')
+              ];
+
+              for (const el of candidates) {
+                if (el.src && el.src.startsWith('http')) {
+                  clearInterval(interval);
+                  resolve(el.src);
+                  return;
+                }
+              }
+            }, 1000);
+
+            setTimeout(() => {
+              clearInterval(interval);
+              resolve(null);
+            }, 30000);
+          });
+        };
+
+        const viewerSrc = await waitForViewer();
+
+        if (viewerSrc) {
+          chrome.runtime.sendMessage({
+            action: 'download',
+            url: viewerSrc,
+            partNumber,
+            folderName,
+            mode,
+            tabId
+          });
+        } else {
+          chrome.runtime.sendMessage({
+            action: 'progress',
+            log: `❌ No viewer or drawing found for ${partNumber}`,
+            tabId
+          });
+        }
+      },
+      args: [partNumber, folderName, mode, tab.id]
+    });
+  }, 5000);
+}
+
+
     sendResponse({ status: "started" });
   }
 
@@ -132,6 +193,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
                   ];
 
                   const stpCandidates = [
+                    ...document.querySelectorAll('iframe'),
+                    ...document.querySelectorAll('div'),
+                    ...document.querySelectorAll('object'),
                     ...document.querySelectorAll('a[href*=".stp"]'),
                     ...document.querySelectorAll('a[href*=".STP"]'),
                     ...document.querySelectorAll('[src*="stp"]'),
@@ -190,9 +254,9 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
                       const title = trigger.title?.toLowerCase() || '';
                       const onclick = trigger.onclick?.toString() || '';
                       
-                      if (text.includes('download') || text.includes('pdf') || text.includes('stp') ||
-                          title.includes('download') || title.includes('pdf') || title.includes('stp') ||
-                          onclick.includes('download') || onclick.includes('pdf') || onclick.includes('stp')) {
+                      if (text.includes('download') || text.includes('DOWNLOAD') || text.includes('pdf') || text.includes('stp') ||
+                          title.includes('download') || text.includes('DOWNLOAD') || title.includes('pdf') || title.includes('stp') ||
+                          onclick.includes('download') || text.includes('DOWNLOAD') || onclick.includes('pdf') || onclick.includes('stp')) {
                         console.log('🎯 Trying to click download trigger:', trigger);
                         trigger.click();
                         break;
