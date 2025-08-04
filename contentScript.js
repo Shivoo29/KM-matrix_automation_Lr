@@ -3,19 +3,24 @@
 (() => {
   // Expand all BOM rows function
   function expandAllRows(callback) {
-    let clicks = 0;
     function clickNext() {
       const icons = document.querySelectorAll('img[src^="data:image/svg+xml,%3csvg%20width=\'6\'%20height=\'8\'"]');
-      if (icons[clicks]) {
-        icons[clicks].click();
-        clicks++;
-        setTimeout(clickNext, 800); // Wait for expansion
-      } else {
-        setTimeout(callback, 1500); // Wait for last expansion
+      if (icons.length === 0) {
+        console.log("✅ All rows expanded.");
+        setTimeout(callback, 1500);
+        return;
       }
+
+      // Click the first expandable icon
+      icons[0].click();
+
+      // Wait and re-scan
+      setTimeout(clickNext, 800);
     }
+
     clickNext();
   }
+
 
   // Parse BOM table with enhanced data extraction
   const parseTable = () => {

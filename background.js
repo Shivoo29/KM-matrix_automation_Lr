@@ -758,3 +758,15 @@ self.addEventListener('unhandledrejection', event => {
   console.error('❌ Unhandled promise rejection:', event.reason);
   sendProgressUpdate(`❌ Unexpected error: ${event.reason}`, 'error');
 });
+
+// Adding a listner to handle the download request of STP files 
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'downloadSTP' && request.url) {
+    chrome.download.download({
+      url: request.url,
+      filename: 'downloaded_file.stp',
+      saveAs: true
+    });
+  }
+});
